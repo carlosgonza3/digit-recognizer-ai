@@ -1,7 +1,7 @@
+PROGRAM_NAME = "MNISTClassifier"
 
-# Required methods from scikit-learn
-from sklearn.datasets import load_digits
-from sklearn.model_selection import train_test_split
+import random
+
 
 # Required Libraries
 import numpy as np
@@ -10,93 +10,182 @@ import matplotlib.pyplot as plt
 # Used for confusion metrix data
 from sklearn import metrics 
 
-## Start Program Message
-print("\n__________________________________________________\n")
-print(" Machine learning app that classifies handwritten digits (0–9)\n")
+# Used for loading MNIST Data
+from struct import unpack
 
+import sys
+import termios
 
-## Loading digits from sklearn.datasets
-print("\t[!]-> Loading data...\n")
-digits = load_digits()
-if (digits):
-    print("\t[!]-> Data loaded successfully!\n")
-    print("\t - Data Shape: ", digits.data.shape)
-    print("\t - Data Size: ", digits.data.size)
-    print()
-else:
-    print("\t[X]-> Error when loading data")
-    print("\n")
-    SystemExit
+def flush_input():
+    termios.tcflush(sys.stdin, termios.TCIFLUSH)
 
-## Normalizing Data, [0, 16] -> [0, 1]
-print("\t[!]-> Normalizing Data...\n")
-digits.data = digits.data/16.0
-print("\t[!]-> Data normalized successfully!\n")
+# Function used for debugging
+def debugCommand(type, output=None, name=None):
+    if (type=='task'):
+        print('\n\t# -> ', output, '...\n')
+    elif (type=='success'):
+        print('\t! ->', output+'!\n\n')
+    elif (type=='error'):
+        print('\tX -> Error performing: ', output, '\n')
+        SystemExit(2)
+    elif (type=='start'):
+        print('\n@ -> Program', PROGRAM_NAME,'running...\n')
+    elif (type=='end'):
+        print('\n@ -> Program', PROGRAM_NAME,'finished executing\n')
+    elif (type=='data'):
+        print('\t\t* -> ', name, ': ', output,'\n')
+    else:
+        print(output)
 
-## Displaying digits data
-print("\t[!]-> Displaying Data...\n")
-input = int(input("\t[i]-> Enter number of images to preview: "))
-print()
-
-# Conditionally Display plot
-if (input != 0):
-
-    # Setting dimesions for column/row for diplaying digits images dynamically inside plot
-    columns = 10
-    rows = (input + columns-1) // columns
-    plt.figure(figsize=(columns*2,rows*2.2))
-
-    # Traversing digits data and creating pairs of each image with its corresponing label and adds it in subplot to display
-    for index, (image, label) in enumerate(zip(digits.data[0:input], digits.target[0:input])):
-        plt.subplot(rows, columns, index+1)
-        plt.imshow(np.reshape(image, (8,8)), cmap=plt.cm.gray)
-        plt.title('%i\n' % label, fontsize = 20)
-        plt.axis('off')
+# Function that loads MNIST dataset from ./data
+def loadmnist(imageFile, labelFile):
     
-    # Displays Plot 
-    plt.tight_layout()
-    plt.show()
-    print("\n\t[!]-> Data displayed successfully!\n")
+    # Open the images with gzip in read binary mode
+    images = open(imageFile, 'rb')
+    labels = open(labelFile, 'rb')
 
-## Splitting Data into Training Set and Test Set
-print("\t[!]-> Splitting Data for Training and Tests (80/20)...\n")
-x_train, x_test, y_train, y_test = train_test_split(digits.data, digits.target, test_size=0.20, random_state=0)
-print("\t - Image Train Shape: ", x_train.data.shape)
-print("\t - Labels Train Shape: ", y_train.data.shape)
-print("\t - Image Test Shape: ", x_test.data.shape)
-print("\t - Labels Test Shape: ", y_test.data.shape)
-print("\n\t[!]-> Data splitted successfully!\n")
+    images.read(4)
+    numberOfImages = images.read(4)  # Skip the magic_number for the fixed header identifier
+    numberOfImages = unpack('>I', numberOfImages)[0] 
 
-## scikit-learn Modeling Pattern
-print("\t[!]-> Choosing Data Modelling Pattern...\n")
+    rows = images.read(4)
+    rows = unpack('>I', rows)[0]
 
-# Importing the Logistic Regression model from sklearn library
+    columns = images.read(4)
+    columns = unpack('>I', columns)[0]
+
+    labels.read(4)
+    N = labels.read(4)
+    N = unpack('>I', N)[0]
+
+    x = np.zeros((N, rows*columns), dtype=np.uint8) # Initializing nump array
+    y = np.zeros(N, dtype=np.uint8) # Initializing nump array
+
+    for i in range(N):
+        for j in range(rows*columns):
+            tmp_pixel = images.read(1)
+            tmp_pixel = unpack('>B', tmp_pixel)[0]
+            x[i][j] = tmp_pixel
+        tmp_label = labels.read(1)
+        y[i] = unpack('>B', tmp_label)[0]
+    
+    images.close() # Prevent data leaks
+    labels.close() # Prevent data leaks
+    
+    return (x, y)
+
+# Start Program
+debugCommand('start')
+
+# Extracting training data (img/label) from the MNIST dataset
+debugCommand('task', 'Extracting training data from MNIST dataset')
+train_img, train_lbl = loadmnist('data/train-images-idx3-ubyte', 'data/train-labels-idx1-ubyte')
+debugCommand('data', train_img.shape, 'train_img shape')
+debugCommand('data', train_lbl.shape, 'train_lbl shape')
+debugCommand('success', 'Training data saved successfully')
+
+# Extracting learning data (img/label) from the MNIST datase
+debugCommand('task', 'Extracting test data from MNIST dataset')
+test_img, test_lbl = loadmnist('data/t10k-images-idx3-ubyte', 'data/t10k-labels-idx1-ubyte')
+debugCommand('data', test_img.shape, 'test_img shape')
+debugCommand('data', test_lbl.shape, 'test_lbl shape')
+debugCommand('success', 'Test data saved successfully')
+
+# Displaying training Images
+count = int(input('\t_ -> # of images to load: '))
+print()
+cols = 10
+rows = (count + cols - 1) // cols  # Ceiling division
+
+plt.figure(figsize=(cols * 2, rows * 2.2))  # Dynamic figsize
+
+for index, (image, label) in enumerate(zip(test_img[:count], test_lbl[:count])):
+    plt.subplot(rows, cols, index + 1)
+    plt.imshow(np.reshape(image, (28, 28)), cmap=plt.cm.gray)
+    plt.title(f'{label}', fontsize=10)
+    plt.axis('off')
+
+plt.tight_layout()
+plt.show()
+
+# Normalizing Data
+debugCommand("task", "Normalizing data...")
+
+debugCommand('data', '', "Normalizing train_img")
+train_img = train_img/255
+#print("\n", train_img[0], "\n")
+
+#print("\n", train_lbl, "\n")
+
+debugCommand('data', '', "Normalizing test_img")
+test_img = test_img/255
+#print("\n", test_img[0], "\n")
+
+debugCommand('success', "Data is now normalized")
+#print("\n", test_lbl, "\n")
+
+
+# Logistic Linear Regression
+debugCommand("task", "Setting learning model...")
 from sklearn.linear_model import LogisticRegression
+debugCommand('data', LogisticRegression, "Learning Model")
+logisticRegression = LogisticRegression(solver='lbfgs', max_iter=1000)
+debugCommand('success', "Learning model set")
 
-# Creating instance of Model
-logisticRegression = LogisticRegression()
-print("\t - ", logisticRegression)
-print("\n\t[!]-> Data Modelling Pattern set successfully!\n")
+# Training Data
+debugCommand("task", " Training Model...")
+logisticRegression.fit(train_img, train_lbl)
+debugCommand("success", " Model is trained")
 
+def testModel():
 
-## Training Model with the training data
-print("\t[!]-> Training Model using training data...\n")
-logisticRegression.fit(x_train, y_train)
-print("\t[!]-> Model trained successfully!\n")
+    testIndex = ""
 
-## Predicting the labes from test images
-print("\t[!]-> Making predictions on entire test dataset...\n")
-predictions = logisticRegression.predict(x_test) # Predicting y_test value
-print("\t[!]-> Predictions made successfully!\n")
+    while testIndex != -1:
 
-## Measuring Model Performance
-print("\t[!]-> Measuring Model Performance...\n")
-score = logisticRegression.score(x_test, y_test)
-print("\t - Score of Model Performance: %", round(score*100, 2))
-print("\n\t[!]-> Model performance measured succesfully!\n")
+        flush_input()
+        testIndex = input('\t_ -> Test index (-1 exit):')
+        print()
 
-# Function used to create and populate confusion matrix plot
-print("\t[!]-> Displaying Confusion Matrix...\n")
+        if (testIndex == ""):
+            testIndex = random.randint(0, len(test_img) - 1)
+            debugCommand('data', testIndex, 'Index selected')
+        else:
+            testIndex = int(testIndex)
+
+        if testIndex == -1:
+            break
+
+        show_digit_image(test_img[testIndex], test_lbl[testIndex])
+
+        prediction = logisticRegression.predict(test_img[testIndex].reshape(1, -1))[0]
+        actual = test_lbl[testIndex]
+        debugCommand('data', f"Predicted: {prediction}", f"Actual: {actual}")
+
+        testIndex = ""
+
+def show_digit_image(image, label):
+    plt.imshow(np.reshape(image, (28, 28)), cmap=plt.cm.gray)
+    plt.title(f'{label}', fontsize=10)
+    plt.axis('off')
+    plt.show()
+
+debugCommand("task", " Testing Model...")
+testModel()
+debugCommand("success", " Model Tested")
+
+# Measuring Model Performance
+score = logisticRegression.score(test_img, test_lbl)
+debugCommand('data', (round(score*100, 2),'%',' of accuracy'), 'Model Performance')
+
+# Measuring Model Performance
+debugCommand("task", " Generating Predictions")
+predictions = logisticRegression.predict(test_img)
+debugCommand("success", " Predictions Generated")
+
+# Displaying confusion matrix
+debugCommand("task", " Ploting confusion matrix")
+confusionMatrix = metrics.confusion_matrix(test_lbl, predictions)
 def plot_confusion_matrix(confusionMatrix, title="Confusion Matrix", cmap="Pastel1"):
     plt.figure(figsize=(9,9))
     plt.imshow(confusionMatrix, interpolation="nearest", cmap=cmap)
@@ -113,17 +202,14 @@ def plot_confusion_matrix(confusionMatrix, title="Confusion Matrix", cmap="Paste
     for x in range(width):
         for y in range(height):
             plt.annotate(str(confusionMatrix[x][y]), xy=(y,x), horizontalalignment='center', verticalalignment='center')
-
-## Plotting and Displaying Confussion Matrix
-confusionMatrix = metrics.confusion_matrix(y_test, predictions)
 plot_confusion_matrix(confusionMatrix)
 plt.show()
-print("\n\t[!]-> Confussion Matrix generated successfully!\n")
+debugCommand("success", " Cconfusion matrix displayed")
 
 ## Displaying Classification Report
-print("\t[!]-> Displaying Classification Report...\n")
+debugCommand('task', 'Generating classification report')
 from sklearn.metrics import classification_report
-print(classification_report(y_test, predictions))
-print("\n\t[!]-> Classification Report generated successfully!\n")
+print(classification_report(test_lbl, predictions), '\n')
+debugCommand('success', 'classification report created')
 
-
+debugCommand('end')
