@@ -1,21 +1,36 @@
 PROGRAM_NAME = "MNISTClassifier"
 
 import random
-
+import sys
+import termios
 
 # Required Libraries
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Used for confusion metrix data
+# Used for confusion matrix data
 from sklearn import metrics 
 
 # Used for loading MNIST Data
 from struct import unpack
 
-import sys
-import termios
+# Function used for getting user input as an integer
+def getInt(output):
+    flag = False
+    while (flag == False):
+        try:
+            count = input('\t_ -> '+output+': ')
+            if (count == ''):
+                count = ''
+            else:
+                count = int(count)
+            flag = True
+            print()
+        except ValueError:
+            debugCommand('error', 'Invalid Input')
+    return count
 
+# Function used for emptying input buffer
 def flush_input():
     termios.tcflush(sys.stdin, termios.TCIFLUSH)
 
@@ -26,8 +41,7 @@ def debugCommand(type, output=None, name=None):
     elif (type=='success'):
         print('\t! ->', output+'!\n\n')
     elif (type=='error'):
-        print('\tX -> Error performing: ', output, '\n')
-        SystemExit(2)
+        print('\n\tX -> Error: ', output, '\n')
     elif (type=='start'):
         print('\n@ -> Program', PROGRAM_NAME,'running...\n')
     elif (type=='end'):
@@ -74,69 +88,7 @@ def loadmnist(imageFile, labelFile):
     
     return (x, y)
 
-# Start Program
-debugCommand('start')
-
-# Extracting training data (img/label) from the MNIST dataset
-debugCommand('task', 'Extracting training data from MNIST dataset')
-train_img, train_lbl = loadmnist('data/train-images-idx3-ubyte', 'data/train-labels-idx1-ubyte')
-debugCommand('data', train_img.shape, 'train_img shape')
-debugCommand('data', train_lbl.shape, 'train_lbl shape')
-debugCommand('success', 'Training data saved successfully')
-
-# Extracting learning data (img/label) from the MNIST datase
-debugCommand('task', 'Extracting test data from MNIST dataset')
-test_img, test_lbl = loadmnist('data/t10k-images-idx3-ubyte', 'data/t10k-labels-idx1-ubyte')
-debugCommand('data', test_img.shape, 'test_img shape')
-debugCommand('data', test_lbl.shape, 'test_lbl shape')
-debugCommand('success', 'Test data saved successfully')
-
-# Displaying training Images
-count = int(input('\t_ -> # of images to load: '))
-print()
-cols = 10
-rows = (count + cols - 1) // cols  # Ceiling division
-
-plt.figure(figsize=(cols * 2, rows * 2.2))  # Dynamic figsize
-
-for index, (image, label) in enumerate(zip(test_img[:count], test_lbl[:count])):
-    plt.subplot(rows, cols, index + 1)
-    plt.imshow(np.reshape(image, (28, 28)), cmap=plt.cm.gray)
-    plt.title(f'{label}', fontsize=10)
-    plt.axis('off')
-
-plt.tight_layout()
-plt.show()
-
-# Normalizing Data
-debugCommand("task", "Normalizing data...")
-
-debugCommand('data', '', "Normalizing train_img")
-train_img = train_img/255
-#print("\n", train_img[0], "\n")
-
-#print("\n", train_lbl, "\n")
-
-debugCommand('data', '', "Normalizing test_img")
-test_img = test_img/255
-#print("\n", test_img[0], "\n")
-
-debugCommand('success', "Data is now normalized")
-#print("\n", test_lbl, "\n")
-
-
-# Logistic Linear Regression
-debugCommand("task", "Setting learning model...")
-from sklearn.linear_model import LogisticRegression
-debugCommand('data', LogisticRegression, "Learning Model")
-logisticRegression = LogisticRegression(solver='lbfgs', max_iter=1000)
-debugCommand('success', "Learning model set")
-
-# Training Data
-debugCommand("task", " Training Model...")
-logisticRegression.fit(train_img, train_lbl)
-debugCommand("success", " Model is trained")
-
+# Function used for Interactive testing
 def testModel():
 
     testIndex = ""
@@ -144,7 +96,7 @@ def testModel():
     while testIndex != -1:
 
         flush_input()
-        testIndex = input('\t_ -> Test index (-1 exit):')
+        testIndex = getInt('\t_ -> Test index (-1 exit): ')
         print()
 
         if (testIndex == ""):
@@ -164,28 +116,14 @@ def testModel():
 
         testIndex = ""
 
+# Function used for displaying 1 image of a digit and label
 def show_digit_image(image, label):
     plt.imshow(np.reshape(image, (28, 28)), cmap=plt.cm.gray)
     plt.title(f'{label}', fontsize=10)
     plt.axis('off')
     plt.show()
 
-debugCommand("task", " Testing Model...")
-testModel()
-debugCommand("success", " Model Tested")
-
-# Measuring Model Performance
-score = logisticRegression.score(test_img, test_lbl)
-debugCommand('data', (round(score*100, 2),'%',' of accuracy'), 'Model Performance')
-
-# Measuring Model Performance
-debugCommand("task", " Generating Predictions")
-predictions = logisticRegression.predict(test_img)
-debugCommand("success", " Predictions Generated")
-
-# Displaying confusion matrix
-debugCommand("task", " Ploting confusion matrix")
-confusionMatrix = metrics.confusion_matrix(test_lbl, predictions)
+# Function used for plotting confusion matrix
 def plot_confusion_matrix(confusionMatrix, title="Confusion Matrix", cmap="Pastel1"):
     plt.figure(figsize=(9,9))
     plt.imshow(confusionMatrix, interpolation="nearest", cmap=cmap)
@@ -202,6 +140,88 @@ def plot_confusion_matrix(confusionMatrix, title="Confusion Matrix", cmap="Paste
     for x in range(width):
         for y in range(height):
             plt.annotate(str(confusionMatrix[x][y]), xy=(y,x), horizontalalignment='center', verticalalignment='center')
+            
+
+# Start Program
+debugCommand('start')
+
+# Extracting training data (img/label) from the MNIST dataset
+debugCommand('task', 'Extracting training data from MNIST dataset')
+
+train_img, train_lbl = loadmnist('data/train-images-idx3-ubyte', 'data/train-labels-idx1-ubyte')
+
+debugCommand('data', train_img.shape, 'train_img shape')
+debugCommand('data', train_lbl.shape, 'train_lbl shape')
+debugCommand('success', 'Training data saved successfully')
+
+# Extracting learning data (img/label) from the MNIST datase
+debugCommand('task', 'Extracting test data from MNIST dataset')
+
+# Loading images using loadminst() function
+test_img, test_lbl = loadmnist('data/t10k-images-idx3-ubyte', 'data/t10k-labels-idx1-ubyte')
+
+debugCommand('data', test_img.shape, 'test_img shape')
+debugCommand('data', test_lbl.shape, 'test_lbl shape')
+debugCommand('success', 'Test data saved successfully')
+
+# Displaying training Images
+count = getInt('# of images to load')
+if (count > 0):
+    cols = 10
+    rows = (count + cols - 1) // cols  # Ceiling division
+
+    plt.figure(figsize=(cols * 2, rows * 2.2))  # Dynamic figsize
+
+    for index, (image, label) in enumerate(zip(test_img[:count], test_lbl[:count])):
+        plt.subplot(rows, cols, index + 1)
+        plt.imshow(np.reshape(image, (28, 28)), cmap=plt.cm.gray)
+        plt.title(f'{label}', fontsize=10)
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+# Normalizing Data
+debugCommand("task", "Normalizing data...")
+
+debugCommand('data', 'Normalizing train_img')
+train_img = train_img/255
+
+debugCommand('data', 'Normalizing test_img')
+test_img = test_img/255
+
+debugCommand('success', "Data is now normalized")
+
+# Logistic Linear Regression
+debugCommand("task", "Setting learning model")
+from sklearn.linear_model import LogisticRegression
+debugCommand('data', LogisticRegression, "Learning Model")
+logisticRegression = LogisticRegression(solver='lbfgs', max_iter=1000)
+debugCommand('success', "Learning model set")
+
+# Training Data
+debugCommand("task", " Training Model")
+logisticRegression.fit(train_img, train_lbl)
+debugCommand("success", " Model is trained")
+
+# Testing Model
+debugCommand("task", " Testing Model")
+testModel()
+debugCommand("success", " Model Tested")
+
+# Measuring Model Performance
+score = logisticRegression.score(test_img, test_lbl)
+debugCommand('data', (round(score*100, 2),'%',' of accuracy'), 'Model Performance')
+
+# Measuring Model Performance
+debugCommand("task", " Generating Predictions")
+predictions = logisticRegression.predict(test_img)
+debugCommand("success", " Predictions Generated")
+
+# Displaying confusion matrix
+debugCommand("task", " Ploting confusion matrix")
+confusionMatrix = metrics.confusion_matrix(test_lbl, predictions)
 plot_confusion_matrix(confusionMatrix)
 plt.show()
 debugCommand("success", " Cconfusion matrix displayed")
