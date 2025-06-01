@@ -1,0 +1,20 @@
+Team Members:
+- Carlos Gonzalez (ID: )
+- Felipe Nardes (ID: 40243669)
+
+This Python program is a machine learning application that classifies handwritten digits (0–9) using the scikit-learn digits dataset. It uses Logistic Regression as the classifier and evaluates model performance using a confusion matrix and classification report.
+
+Libraries Used:
+- NumPy: for array operations and normalization
+- scikit-learn: for loading data, splitting datasets, training Logistic Regression, and evaluating the model
+- matplotlib: for displaying images and confusion matrix
+
+Step-by-Step Description:
+1. Load the digits dataset from scikit-learn.
+2. Normalize the image data by dividing pixel values by 16.
+3. Ask the user how many digit images they want to preview.
+4. Display those images using matplotlib.
+5. Split the dataset into training (80%) and testing (20%) sets.
+6. Create a Logistic Regression model and train it using the training data.
+7. Use the trained model to make predictions on the test data.
+8. Evaluate the model using accuracy score, confusion matrix, and classification report.
