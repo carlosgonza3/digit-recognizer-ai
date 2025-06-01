@@ -105,7 +105,7 @@ def plot_confusion_matrix(confusionMatrix, title="Confusion Matrix", cmap="Paste
     tick_marks = np.arange(10)
     plt.xlabel('Predicted Label', size=15)
     plt.xticks(tick_marks, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], size=10)
-    plt.xlabel('Actual Label', size=15)
+    plt.ylabel('Actual Label', size=15)
     plt.yticks(tick_marks, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], size=10)
     plt.tight_layout()
     width, height = confusionMatrix.shape
